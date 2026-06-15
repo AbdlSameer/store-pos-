@@ -1,6 +1,8 @@
 node_modules/
-dist/
 build/
+# Allow shared package dist (needed for Render build)
+apps/client/dist/
+apps/server/dist/
 .turbo/
 *.env
 .env.local
