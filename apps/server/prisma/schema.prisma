@@ -1,0 +1,227 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────
+enum UserRole {
+  super_admin
+  admin
+  cashier
+}
+
+enum DiscountType {
+  none
+  flat
+  percent
+}
+
+enum PaymentMethod {
+  cash
+  card
+  upi
+  other
+}
+
+enum PaymentStatus {
+  paid
+  pending
+  refunded
+}
+
+enum AlertType {
+  low_stock
+  out_of_stock
+}
+
+enum SaleMode {
+  retail
+  wholesale
+}
+
+// ─── Models ───────────────────────────────────────────────────
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  fullName     String    @map("full_name") @db.VarChar(100)
+  role         UserRole  @default(cashier)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  bills              Bill[]
+  productsCreated    Product[]   @relation("CreatedBy")
+  alertsAcknowledged StockAlert[] @relation("AcknowledgedBy")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  parentId    String?  @map("parent_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  parent         Category?  @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Category[] @relation("CategoryChildren")
+  products       Product[]
+  salesAnalytics SalesAnalytics[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku               String   @unique @db.VarChar(50)
+  name              String   @db.VarChar(255)
+  description       String?  @db.Text
+  categoryId        String   @map("category_id") @db.Uuid
+  price             Decimal  @db.Decimal(10, 2)
+  wholesalePrice    Decimal? @map("wholesale_price") @db.Decimal(10, 2)
+  costPrice         Decimal? @map("cost_price") @db.Decimal(10, 2)
+  quantity          Int      @default(0)
+  lowStockThreshold Int      @default(10) @map("low_stock_threshold")
+  imageUrl          String?  @map("image_url") @db.VarChar(500)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdBy         String?  @map("created_by") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  category       Category        @relation(fields: [categoryId], references: [id])
+  creator        User?           @relation("CreatedBy", fields: [createdBy], references: [id])
+  qrCode         QRCode?
+  billItems      BillItem[]
+  stockAlerts    StockAlert[]
+  salesAnalytics SalesAnalytics[]
+
+  @@index([sku])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([quantity])
+  @@map("products")
+}
+
+model QRCode {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId        String   @unique @map("product_id") @db.Uuid
+  qrPayload        String   @map("qr_payload") @db.Text
+  qrImageUrl       String   @map("qr_image_url") @db.Text
+  barcodePayload   String   @map("barcode_payload") @db.VarChar(100)
+  barcodeImageUrl  String   @map("barcode_image_url") @db.Text
+  hmacSignature    String   @map("hmac_signature") @db.VarChar(255)
+  generatedAt      DateTime @default(now()) @map("generated_at") @db.Timestamptz
+  regeneratedAt    DateTime? @map("regenerated_at") @db.Timestamptz
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([barcodePayload])
+  @@map("qr_codes")
+}
+
+model Bill {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  billNumber    String        @unique @map("bill_number") @db.VarChar(20)
+  cashierId     String        @map("cashier_id") @db.Uuid
+  customerName  String?       @map("customer_name") @db.VarChar(100)
+  customerPhone String?       @map("customer_phone") @db.VarChar(20)
+  subtotal      Decimal       @db.Decimal(10, 2)
+  discountType  DiscountType  @default(none) @map("discount_type")
+  discountValue Decimal       @default(0) @map("discount_value") @db.Decimal(10, 2)
+  taxRate       Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount     Decimal       @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @default(paid) @map("payment_status")
+  saleMode      SaleMode      @default(retail) @map("sale_mode")
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  cashier User       @relation(fields: [cashierId], references: [id])
+  items   BillItem[]
+
+  @@index([billNumber])
+  @@index([cashierId])
+  @@index([createdAt(sort: Desc)])
+  @@index([paymentStatus])
+  @@map("bills")
+}
+
+model BillItem {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  billId      String   @map("bill_id") @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  productName String   @map("product_name") @db.VarChar(255)
+  productSku  String   @map("product_sku") @db.VarChar(50)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  quantity    Int
+  lineTotal   Decimal  @map("line_total") @db.Decimal(10, 2)
+  saleMode    SaleMode @default(retail) @map("sale_mode")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  bill    Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([billId])
+  @@index([productId])
+  @@index([createdAt(sort: Desc)])
+  @@map("bill_items")
+}
+
+model StockAlert {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId        String    @map("product_id") @db.Uuid
+  alertType        AlertType @map("alert_type")
+  currentQuantity  Int       @map("current_quantity")
+  threshold        Int
+  isAcknowledged   Boolean   @default(false) @map("is_acknowledged")
+  acknowledgedBy   String?   @map("acknowledged_by") @db.Uuid
+  acknowledgedAt   DateTime? @map("acknowledged_at") @db.Timestamptz
+  notificationSent Boolean   @default(false) @map("notification_sent")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  product     Product @relation(fields: [productId], references: [id])
+  acknowledger User?  @relation("AcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  @@index([productId])
+  @@index([isAcknowledged])
+  @@index([createdAt(sort: Desc)])
+  @@map("stock_alerts")
+}
+
+model SalesAnalytics {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime @db.Date
+  productId  String   @map("product_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  unitsSold  Int      @default(0) @map("units_sold")
+  revenue    Decimal  @default(0) @db.Decimal(12, 2)
+  profit     Decimal  @default(0) @db.Decimal(12, 2)
+  billCount  Int      @default(0) @map("bill_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  product  Product  @relation(fields: [productId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([date, productId])
+  @@index([date(sort: Desc)])
+  @@index([productId])
+  @@index([categoryId])
+  @@index([revenue(sort: Desc)])
+  @@map("sales_analytics")
+}
