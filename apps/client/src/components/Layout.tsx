@@ -23,7 +23,7 @@ export default function Layout() {
     <div className="app-container" style={{ display: 'flex', height: '100vh', backgroundColor: '#f8fafc' }}>
       <aside style={{ width: '250px', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#6366f1' }}>Toy Store POS</h1>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#6366f1' }}>A. M. Mangilal Toy World POS</h1>
         </div>
         
         <nav style={{ flex: 1, padding: '1rem 0' }}>

@@ -36,7 +36,7 @@ export default function Login() {
           <div style={{ display: 'inline-flex', padding: '1rem', backgroundColor: '#6366f1', borderRadius: '50%', color: 'white', marginBottom: '1rem' }}>
             <ShoppingCart size={32} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Toy Store POS</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>A. M. Mangilal Toy World POS</h2>
           <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Sign in to your account</p>
         </div>
 
