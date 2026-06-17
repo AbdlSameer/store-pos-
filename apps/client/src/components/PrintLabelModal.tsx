@@ -28,7 +28,6 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
           <QRCodeSVG value={product.sku} size={128} />
           <div style={{ fontSize: '1.125rem', fontWeight: '500', marginTop: '0.5rem' }}>{product.name}</div>
           <div style={{ fontSize: '1rem', color: '#64748b' }}>SKU: {product.sku}</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginTop: '0.5rem' }}>₹{product.price}</div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }} className="no-print">

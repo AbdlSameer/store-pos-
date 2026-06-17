@@ -138,10 +138,6 @@ input, select, textarea {
 }
 
 @media print {
-  @page {
-    size: 50mm 30mm;
-    margin: 0;
-  }
   body * {
     visibility: hidden;
   }
@@ -152,33 +148,40 @@ input, select, textarea {
     position: absolute;
     left: 0;
     top: 0;
-    width: 50mm;
-    height: 30mm;
+    width: 100%;
     margin: 0;
-    padding: 2mm !important;
     border: none !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 1mm !important;
-    transform: scale(0.6);
-    transform-origin: top left;
-  }
-  .print-area h3 {
-    font-size: 10px !important;
-    margin: 0 !important;
-  }
-  .print-area svg {
-    width: 40px !important;
-    height: 40px !important;
-  }
-  .print-area div {
-    font-size: 8px !important;
-    margin: 0 !important;
-    line-height: 1 !important;
   }
   .no-print {
     display: none !important;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column !important;
+  }
+  .app-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+    height: auto !important;
+  }
+  .app-sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    padding: 0.5rem;
+  }
+  .app-sidebar nav a {
+    flex: 0 0 auto;
+    padding: 0.5rem !important;
+    font-size: 0.875rem;
+  }
+  .app-sidebar nav a .nav-label {
+    display: none;
+  }
+  .main-content {
+    padding: 1rem !important;
   }
 }
