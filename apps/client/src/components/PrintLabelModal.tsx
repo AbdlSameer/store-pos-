@@ -10,14 +10,14 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
-        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }} className="no-print">Print Product Labels (9 per page)</h2>
+        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }} className="no-print">Print Product Labels (8 per page)</h2>
         
         <div className="print-area">
           <div className="label-grid">
             {labels.map((_, i) => (
               <div key={i} className="label-cell">
                 <div className="label-shop-name">A. M. Mangilal Toy World</div>
-                <QRCodeSVG value={product.sku} size={120} />
+                <QRCodeSVG value={product.sku} size={130} />
                 <div className="label-product-name">{product.name}</div>
                 <div className="label-sku">SKU: {product.sku}</div>
                 {product.mrp && <div className="label-mrp">MRP: ₹{product.mrp}</div>}
