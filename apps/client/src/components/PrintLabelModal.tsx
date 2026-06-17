@@ -5,7 +5,7 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
     window.print();
   };
 
-  const labels = Array.from({ length: 9 });
+  const labels = Array.from({ length: 8 });
 
   return (
     <div className="modal-overlay" onClick={onClose}>
