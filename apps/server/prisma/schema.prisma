@@ -92,6 +92,7 @@ model Product {
   description       String?  @db.Text
   categoryId        String   @map("category_id") @db.Uuid
   price             Decimal  @db.Decimal(10, 2)
+  mrp               Decimal? @map("mrp") @db.Decimal(10, 2)
   wholesalePrice    Decimal? @map("wholesale_price") @db.Decimal(10, 2)
   costPrice         Decimal? @map("cost_price") @db.Decimal(10, 2)
   quantity          Int      @default(0)

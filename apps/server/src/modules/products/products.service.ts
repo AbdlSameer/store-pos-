@@ -62,7 +62,7 @@ export async function getProductById(id: string) {
 export async function createProduct(
   data: {
     sku: string; name: string; description?: string; categoryId: string;
-    price: number; wholesalePrice?: number; costPrice?: number; quantity: number; lowStockThreshold: number;
+    price: number; mrp?: number; wholesalePrice?: number; costPrice?: number; quantity: number; lowStockThreshold: number;
   },
   imageUrl: string | undefined,
   createdBy: string
@@ -89,6 +89,7 @@ export async function createProduct(
       id: productId,
       ...data,
       price: new Prisma.Decimal(data.price),
+      ...(data.mrp !== undefined && { mrp: new Prisma.Decimal(data.mrp) }),
       ...(data.wholesalePrice !== undefined && { wholesalePrice: new Prisma.Decimal(data.wholesalePrice) }),
       ...(data.costPrice !== undefined && { costPrice: new Prisma.Decimal(data.costPrice) }),
       imageUrl,
@@ -115,7 +116,7 @@ export async function createProduct(
 
 export async function updateProduct(id: string, data: Partial<{
   name: string; description: string; categoryId: string;
-  price: number; wholesalePrice: number; costPrice: number; quantity: number;
+  price: number; mrp: number; wholesalePrice: number; costPrice: number; quantity: number;
   lowStockThreshold: number; imageUrl: string;
 }>) {
   const product = await prisma.product.findUnique({ where: { id } });
@@ -126,6 +127,7 @@ export async function updateProduct(id: string, data: Partial<{
     data: {
       ...data,
       ...(data.price !== undefined && { price: new Prisma.Decimal(data.price) }),
+      ...(data.mrp !== undefined && { mrp: new Prisma.Decimal(data.mrp) }),
       ...(data.wholesalePrice !== undefined && { wholesalePrice: new Prisma.Decimal(data.wholesalePrice) }),
       ...(data.costPrice !== undefined && { costPrice: new Prisma.Decimal(data.costPrice) }),
     },

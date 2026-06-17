@@ -24,6 +24,7 @@ exports.createProductSchema = zod_1.z.object({
     description: zod_1.z.string().optional(),
     categoryId: zod_1.z.string().uuid(),
     price: zod_1.z.number().min(0),
+    mrp: zod_1.z.number().min(0).optional(),
     wholesalePrice: zod_1.z.number().min(0).optional(),
     costPrice: zod_1.z.number().min(0).optional(),
     quantity: zod_1.z.number().int().min(0),

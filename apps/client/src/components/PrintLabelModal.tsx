@@ -24,7 +24,13 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
             gap: '1rem'
           }}
         >
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>A. M. Mangilal Toy World</h3>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, marginBottom: '0.5rem' }}>A. M. Mangilal Toy World</h3>
+          
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            {product.mrp && <div style={{ fontSize: '1.125rem' }}>MRP: ₹{product.mrp}</div>}
+            
+          </div>
+
           <QRCodeSVG value={product.sku} size={128} />
           <div style={{ fontSize: '1.125rem', fontWeight: '500', marginTop: '0.5rem' }}>{product.name}</div>
           <div style={{ fontSize: '1rem', color: '#64748b' }}>SKU: {product.sku}</div>

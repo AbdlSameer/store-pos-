@@ -11,6 +11,7 @@ export default function AddProductModal({ onClose, onProductAdded, initialData }
     name: initialData?.name || '',
     description: initialData?.description || '',
     categoryId: initialData?.categoryId || '',
+    mrp: initialData?.mrp?.toString() || '',
     price: initialData?.price?.toString() || '',
     wholesalePrice: initialData?.wholesalePrice?.toString() || '',
     costPrice: initialData?.costPrice?.toString() || '',
@@ -29,6 +30,7 @@ export default function AddProductModal({ onClose, onProductAdded, initialData }
     try {
       const payload = {
         ...formData,
+        mrp: formData.mrp ? Number(formData.mrp) : undefined,
         price: Number(formData.price),
         wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : undefined,
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
@@ -77,17 +79,21 @@ export default function AddProductModal({ onClose, onProductAdded, initialData }
             <label>Description</label>
             <textarea className="input-field" rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label>MRP (₹)</label>
+              <input type="number" step="0.01" className="input-field" value={formData.mrp} onChange={e => setFormData({...formData, mrp: e.target.value})} />
+            </div>
             <div className="form-group">
               <label>Selling Price (₹)</label>
               <input required type="number" step="0.01" className="input-field" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Wholesale Price (₹)</label>
+              <label>Wholesale (₹)</label>
               <input type="number" step="0.01" className="input-field" value={formData.wholesalePrice} onChange={e => setFormData({...formData, wholesalePrice: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Cost Price (₹)</label>
+              <label>Cost (₹)</label>
               <input type="number" step="0.01" className="input-field" value={formData.costPrice} onChange={e => setFormData({...formData, costPrice: e.target.value})} />
             </div>
           </div>

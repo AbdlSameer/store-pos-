@@ -38,6 +38,7 @@ export declare const createProductSchema: z.ZodObject<{
     description: z.ZodOptional<z.ZodString>;
     categoryId: z.ZodString;
     price: z.ZodNumber;
+    mrp: z.ZodOptional<z.ZodNumber>;
     wholesalePrice: z.ZodOptional<z.ZodNumber>;
     costPrice: z.ZodOptional<z.ZodNumber>;
     quantity: z.ZodNumber;
@@ -51,6 +52,7 @@ export declare const createProductSchema: z.ZodObject<{
     lowStockThreshold: number;
     description?: string | undefined;
     costPrice?: number | undefined;
+    mrp?: number | undefined;
     wholesalePrice?: number | undefined;
 }, {
     name: string;
@@ -61,6 +63,7 @@ export declare const createProductSchema: z.ZodObject<{
     description?: string | undefined;
     costPrice?: number | undefined;
     lowStockThreshold?: number | undefined;
+    mrp?: number | undefined;
     wholesalePrice?: number | undefined;
 }>;
 export declare const updateProductSchema: z.ZodObject<{
@@ -69,6 +72,7 @@ export declare const updateProductSchema: z.ZodObject<{
     description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     categoryId: z.ZodOptional<z.ZodString>;
     price: z.ZodOptional<z.ZodNumber>;
+    mrp: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
     wholesalePrice: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
     costPrice: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
     quantity: z.ZodOptional<z.ZodNumber>;
@@ -82,6 +86,7 @@ export declare const updateProductSchema: z.ZodObject<{
     costPrice?: number | undefined;
     quantity?: number | undefined;
     lowStockThreshold?: number | undefined;
+    mrp?: number | undefined;
     wholesalePrice?: number | undefined;
 }, {
     name?: string | undefined;
@@ -92,6 +97,7 @@ export declare const updateProductSchema: z.ZodObject<{
     costPrice?: number | undefined;
     quantity?: number | undefined;
     lowStockThreshold?: number | undefined;
+    mrp?: number | undefined;
     wholesalePrice?: number | undefined;
 }>;
 export declare const stockAdjustmentSchema: z.ZodObject<{
