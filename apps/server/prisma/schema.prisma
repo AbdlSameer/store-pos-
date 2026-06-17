@@ -169,6 +169,7 @@ model BillItem {
   productName String   @map("product_name") @db.VarChar(255)
   productSku  String   @map("product_sku") @db.VarChar(50)
   unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  mrp         Decimal? @map("mrp") @db.Decimal(10, 2)
   quantity    Int
   lineTotal   Decimal  @map("line_total") @db.Decimal(10, 2)
   saleMode    SaleMode @default(retail) @map("sale_mode")

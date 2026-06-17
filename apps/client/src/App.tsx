@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import POS from './pages/POS';
+import BillHistory from './pages/BillHistory';
 import Alerts from './pages/Alerts';
 import Analytics from './pages/Analytics';
 
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="pos" element={<POS />} />
+          <Route path="bill-history" element={<BillHistory />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="analytics" element={<Analytics />} />
         </Route>

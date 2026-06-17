@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { createBillSchema, scanSchema } from '@toystore/shared';
 import * as posService from './pos.service';
-import { successResponse } from '../../utils/pagination';
+import { successResponse, buildPaginatedResponse } from '../../utils/pagination';
 
 export async function scanQr(req: Request, res: Response, next: NextFunction) {
   try {
@@ -36,6 +36,15 @@ export async function getBill(req: Request, res: Response, next: NextFunction) {
   try {
     const bill = await posService.getBillById(req.params.id);
     res.json(successResponse(bill));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getHistory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { bills, total, page, limit } = await posService.getHistory(req.query as Record<string, unknown>);
+    res.json(buildPaginatedResponse(bills, total, page, limit));
   } catch (err) {
     next(err);
   }

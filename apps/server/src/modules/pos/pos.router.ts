@@ -14,5 +14,7 @@ router.post('/scan', scanLimiter, authorize(['super_admin', 'admin', 'cashier'])
 router.post('/bills', authorize(['super_admin', 'admin', 'cashier']), posController.createBill);
 router.get('/bills', authorize(['super_admin', 'admin', 'cashier']), posController.getBills);
 router.get('/bills/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
+router.get('/history', authorize(['super_admin', 'admin', 'cashier']), posController.getHistory);
+router.get('/history/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
 
 export default router;

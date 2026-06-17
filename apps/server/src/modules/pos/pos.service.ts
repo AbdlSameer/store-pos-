@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 import { verifyHmac, decodeQrPayload } from '../../utils/hmac';
-import { generateBillNumber } from '../../utils/pagination';
+import { generateBillNumber, parsePagination } from '../../utils/pagination';
 import { cacheSet, CacheKeys, cacheGet } from '../../config/redis';
 import { QR_SCAN_CACHE_TTL } from '@toystore/shared';
 // We will import Queue from bullmq when we set it up
@@ -88,6 +88,7 @@ export async function createBill(
       productName: product.name,
       productSku: product.sku,
       unitPrice: new Prisma.Decimal(unitPrice),
+      mrp: product.mrp !== null ? new Prisma.Decimal(product.mrp as any) : null,
       quantity: item.quantity,
       lineTotal: new Prisma.Decimal(lineTotal),
       saleMode: data.saleMode,
@@ -219,4 +220,39 @@ export async function getBillById(id: string) {
   });
   if (!bill) throw new AppError('Bill not found', 404);
   return bill;
+}
+
+export async function getHistory(query: Record<string, unknown>) {
+  const { skip, take, page, limit } = parsePagination(query);
+  const search = query.search as string | undefined;
+  const startDate = query.startDate as string | undefined;
+  const endDate = query.endDate as string | undefined;
+
+  const where: Prisma.BillWhereInput = {
+    ...(search && {
+      OR: [
+        { billNumber: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } }
+      ]
+    }),
+    ...((startDate || endDate) && {
+      createdAt: {
+        ...(startDate && { gte: new Date(startDate) }),
+        ...(endDate && { lte: new Date(endDate) })
+      }
+    })
+  };
+
+  const [bills, total] = await Promise.all([
+    prisma.bill.findMany({
+      where,
+      skip,
+      take,
+      include: { items: true, cashier: { select: { fullName: true } } },
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.bill.count({ where })
+  ]);
+
+  return { bills, total, page, limit };
 }
