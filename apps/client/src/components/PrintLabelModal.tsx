@@ -5,39 +5,30 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
     window.print();
   };
 
+  const labels = Array.from({ length: 9 });
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }} className="no-print">Print Product Label</h2>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }} className="no-print">Print Product Labels (9 per page)</h2>
         
-        <div 
-          className="print-area" 
-          style={{ 
-            border: '2px dashed #cbd5e1', 
-            padding: '2rem', 
-            borderRadius: '8px',
-            textAlign: 'center',
-            backgroundColor: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '1rem'
-          }}
-        >
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, marginBottom: '0.5rem' }}>A. M. Mangilal Toy World</h3>
-          
-          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            {product.mrp && <div style={{ fontSize: '1.125rem' }}>MRP: ₹{product.mrp}</div>}
+        <div className="print-area">
+          <div className="label-grid">
+            {labels.map((_, i) => (
+              <div key={i} className="label-cell">
+                <div className="label-shop-name">A. M. Mangilal Toy World</div>
+                <QRCodeSVG value={product.sku} size={120} />
+                <div className="label-product-name">{product.name}</div>
+                <div className="label-sku">SKU: {product.sku}</div>
+                {product.mrp && <div className="label-mrp">MRP: ₹{product.mrp}</div>}
+              </div>
+            ))}
           </div>
-
-          <QRCodeSVG value={product.sku} size={128} />
-          <div style={{ fontSize: '1.125rem', fontWeight: '500', marginTop: '0.5rem' }}>{product.name}</div>
-          <div style={{ fontSize: '1rem', color: '#64748b' }}>SKU: {product.sku}</div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }} className="no-print">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }} className="no-print">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Close</button>
-          <button type="button" className="btn btn-primary" onClick={handlePrint}>Print Label</button>
+          <button type="button" className="btn btn-primary" onClick={handlePrint}>Print Labels</button>
         </div>
       </div>
     </div>
