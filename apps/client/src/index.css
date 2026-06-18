@@ -180,6 +180,14 @@ input, select, textarea {
   font-weight: 700;
 }
 
+.label-page {
+  margin-bottom: 1rem;
+}
+
+.label-page:last-child {
+  margin-bottom: 0;
+}
+
 /* ─── Print Styles ─── */
 @media print {
   @page {
@@ -257,6 +265,15 @@ input, select, textarea {
 
   .no-print {
     display: none !important;
+  }
+
+  .label-page {
+    page-break-after: always;
+    margin: 0;
+  }
+
+  .label-page:last-child {
+    page-break-after: avoid;
   }
 }
 
