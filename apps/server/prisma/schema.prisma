@@ -55,12 +55,15 @@ model User {
   role         UserRole  @default(cashier)
   isActive     Boolean   @default(true) @map("is_active")
   lastLogin    DateTime? @map("last_login") @db.Timestamptz
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  twoFactorSecret  String?   @map("two_factor_secret") @db.VarChar(100)
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
 
   bills              Bill[]
   productsCreated    Product[]   @relation("CreatedBy")
   alertsAcknowledged StockAlert[] @relation("AcknowledgedBy")
+  auditLogs          AuditLog[]
 
   @@index([email])
   @@index([role])
@@ -226,4 +229,21 @@ model SalesAnalytics {
   @@index([categoryId])
   @@index([revenue(sort: Desc)])
   @@map("sales_analytics")
+}
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  entity    String   @db.VarChar(100)
+  entityId  String   @map("entity_id") @db.VarChar(100)
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }

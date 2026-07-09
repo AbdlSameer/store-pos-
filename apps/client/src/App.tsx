@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
@@ -14,13 +14,36 @@ import BillHistory from './pages/BillHistory';
 import Alerts from './pages/Alerts';
 import Analytics from './pages/Analytics';
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function PrivateRoute({ children, roles }: { children: React.ReactNode, roles?: string[] }) {
   const user = useAuthStore((state) => state.user);
   if (!user) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to={user.role === 'cashier' ? '/pos' : '/dashboard'} replace />;
+  }
   return <>{children}</>;
 }
 
 export default function App() {
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }, 15 * 60 * 1000); // 15 minutes
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -28,12 +51,12 @@ export default function App() {
         
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="pos" element={<POS />} />
-          <Route path="bill-history" element={<BillHistory />} />
-          <Route path="alerts" element={<Alerts />} />
-          <Route path="analytics" element={<Analytics />} />
+          <Route path="dashboard" element={<PrivateRoute roles={['super_admin', 'admin']}><Dashboard /></PrivateRoute>} />
+          <Route path="products" element={<PrivateRoute roles={['super_admin', 'admin', 'cashier']}><Products /></PrivateRoute>} />
+          <Route path="pos" element={<PrivateRoute roles={['super_admin', 'admin', 'cashier']}><POS /></PrivateRoute>} />
+          <Route path="bill-history" element={<PrivateRoute roles={['super_admin', 'admin', 'cashier']}><BillHistory /></PrivateRoute>} />
+          <Route path="alerts" element={<PrivateRoute roles={['super_admin', 'admin', 'cashier']}><Alerts /></PrivateRoute>} />
+          <Route path="analytics" element={<PrivateRoute roles={['super_admin', 'admin']}><Analytics /></PrivateRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

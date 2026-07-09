@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
 import { prisma } from '../../config/database';
 import { redis } from '../../config/redis';
 import { env } from '../../config/env';
@@ -17,6 +19,13 @@ export async function loginService(email: string, password: string) {
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
     throw new AppError('Invalid credentials', 401);
+  }
+
+  if ((user.role === 'admin' || user.role === 'super_admin') && user.twoFactorEnabled) {
+    return {
+      requires2FA: true,
+      userId: user.id,
+    };
   }
 
   // Update last login
@@ -138,4 +147,83 @@ export async function changePasswordService(
 
   // Invalidate refresh token so user must re-login
   await redis.del(`${REFRESH_TOKEN_PREFIX}${userId}`);
+}
+
+export async function setup2FAService(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError('User not found', 404);
+
+  const secret = speakeasy.generateSecret({
+    name: `ToyStore (${user.email})`,
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { twoFactorSecret: secret.base32 },
+  });
+
+  const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url || '');
+
+  return {
+    secret: secret.base32,
+    qrCodeUrl,
+  };
+}
+
+export async function verify2FAService(userId: string, token: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError('User not found', 404);
+  if (!user.twoFactorSecret) throw new AppError('2FA not set up', 400);
+
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+  });
+
+  if (!verified) throw new AppError('Invalid 2FA token', 401);
+
+  if (!user.twoFactorEnabled) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: true },
+    });
+  }
+
+  // Update last login
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLogin: new Date() },
+  });
+
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    env.JWT_ACCESS_SECRET,
+    { expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
+  );
+
+  const refreshToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    env.JWT_REFRESH_SECRET,
+    { expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
+  );
+
+  const hashedRefresh = await bcrypt.hash(refreshToken, 8);
+  await redis.set(
+    `${REFRESH_TOKEN_PREFIX}${user.id}`,
+    hashedRefresh,
+    'EX',
+    7 * 24 * 60 * 60
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    },
+  };
 }

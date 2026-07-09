@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { createProductSchema, updateProductSchema, stockAdjustmentSchema } from '@toystore/shared';
 import * as productsService from './products.service';
 import { buildPaginatedResponse, successResponse } from '../../utils/pagination';
+import { logAuditAction } from '../../utils/auditLogger';
 
 export async function listProducts(req: Request, res: Response, next: NextFunction) {
   try {
@@ -30,6 +31,7 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
   try {
     const data = updateProductSchema.parse(req.body);
     const product = await productsService.updateProduct(req.params.id, data);
+    await logAuditAction(req.user!.userId, 'UPDATE_PRODUCT', 'Product', product.id, data);
     res.json(successResponse(product, 'Product updated successfully'));
   } catch (err) { next(err); }
 }
@@ -37,6 +39,7 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
 export async function deleteProduct(req: Request, res: Response, next: NextFunction) {
   try {
     await productsService.deleteProduct(req.params.id);
+    await logAuditAction(req.user!.userId, 'DELETE_PRODUCT', 'Product', req.params.id);
     res.json(successResponse(null, 'Product deleted successfully'));
   } catch (err) { next(err); }
 }
@@ -45,6 +48,7 @@ export async function adjustStock(req: Request, res: Response, next: NextFunctio
   try {
     const { adjustment, reason } = stockAdjustmentSchema.parse(req.body);
     const product = await productsService.adjustStock(req.params.id, adjustment, reason);
+    await logAuditAction(req.user!.userId, 'ADJUST_STOCK', 'Product', product.id, { adjustment, reason });
     res.json(successResponse(product, 'Stock adjusted successfully'));
   } catch (err) { next(err); }
 }
