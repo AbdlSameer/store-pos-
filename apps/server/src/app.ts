@@ -46,18 +46,22 @@ app.post('/api/seed-prod', async (req: express.Request, res: express.Response) =
     return;
   }
   try {
-    const hash = await bcryptjs.hash('123123', 10);
+    const hashAdmin = await bcryptjs.hash('123123', 10);
+    const hashCashier = await bcryptjs.hash('123456', 10);
+    
     await db.user.upsert({
       where: { email: 'sameer@gmail.com' },
-      update: { passwordHash: hash, role: 'super_admin', isActive: true },
-      create: { email: 'sameer@gmail.com', passwordHash: hash, fullName: 'Super Admin', role: 'super_admin' },
+      update: { passwordHash: hashAdmin, role: 'super_admin', isActive: true },
+      create: { email: 'sameer@gmail.com', passwordHash: hashAdmin, fullName: 'Super Admin', role: 'super_admin' },
     });
+    
     await db.user.upsert({
       where: { email: 'cashier@toystore.com' },
-      update: { passwordHash: hash, role: 'cashier', isActive: true },
-      create: { email: 'cashier@toystore.com', passwordHash: hash, fullName: 'Store Cashier', role: 'cashier' },
+      update: { passwordHash: hashCashier, role: 'cashier', isActive: true },
+      create: { email: 'cashier@toystore.com', passwordHash: hashCashier, fullName: 'Store Cashier', role: 'cashier' },
     });
-    res.json({ success: true, message: 'Users created: sameer@gmail.com and cashier@toystore.com (password: 123123)' });
+    
+    res.json({ success: true, message: 'Users created. Admin: 123123. Cashier: 123456' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

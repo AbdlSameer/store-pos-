@@ -6,8 +6,8 @@ import { recordAuditLog } from '../audit/audit.service';
 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password, otp } = loginSchema.parse(req.body);
-    const result = await authService.loginService(email, password, otp);
+    const { password, otp } = loginSchema.parse(req.body);
+    const result = await authService.loginService(password, otp);
 
     // Password was correct but a 2FA code is still required.
     if ('requiresTwoFactor' in result) {

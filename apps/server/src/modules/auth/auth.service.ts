@@ -8,17 +8,21 @@ import { AppError } from '../../middleware/errorHandler';
 
 const REFRESH_TOKEN_PREFIX = 'refresh:';
 
-export async function loginService(email: string, password: string, otp?: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user || !user.isActive) {
-    throw new AppError('Invalid credentials', 401);
+export async function loginService(password: string, otp?: string) {
+  const users = await prisma.user.findMany({ where: { isActive: true } });
+  
+  let matchedUser = null;
+  for (const user of users) {
+    if (await bcrypt.compare(password, user.passwordHash)) {
+      matchedUser = user;
+      break;
+    }
   }
 
-  const isValid = await bcrypt.compare(password, user.passwordHash);
-  if (!isValid) {
+  if (!matchedUser) {
     throw new AppError('Invalid credentials', 401);
   }
+  const user = matchedUser;
 
   // Owner / super_admin accounts require 2FA once enabled.
   if (user.twoFactorEnabled) {

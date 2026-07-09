@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
@@ -20,7 +19,6 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', {
-        email,
         password,
         ...(needsTwoFactor ? { otp } : {}),
       });
@@ -61,18 +59,7 @@ export default function Login() {
         {!needsTwoFactor ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Email</label>
-              <input
-                type="email"
-                className="input-field"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                autoComplete="username"
-                required
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Password</label>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Password / PIN</label>
               <input
                 type="password"
                 className="input-field"
