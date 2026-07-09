@@ -61,7 +61,11 @@ app.post('/api/seed-prod', async (req: express.Request, res: express.Response) =
       create: { email: 'cashier@toystore.com', passwordHash: hashCashier, fullName: 'Store Cashier', role: 'cashier' },
     });
     
-    res.json({ success: true, message: 'Users created. Admin: 123123. Cashier: 123456' });
+    // Clear rate limits in Redis
+    const { redis: redisClient } = await import('./config/redis');
+    await redisClient.flushall();
+    
+    res.json({ success: true, message: 'Users created. Admin: 123123. Cashier: 123456. Rate limits cleared!' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
