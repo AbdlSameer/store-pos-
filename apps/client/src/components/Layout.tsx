@@ -11,7 +11,7 @@ export default function Layout() {
     window.location.href = '/login';
   };
 
-  const navItems = [
+  const allNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/products', label: 'Products', icon: Package },
     { path: '/pos', label: 'POS Terminal', icon: ShoppingCart },
@@ -20,6 +20,10 @@ export default function Layout() {
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     ...(user?.role === 'super_admin' ? [{ path: '/security', label: 'Security', icon: ShieldCheck }] : []),
   ];
+
+  const navItems = user?.role === 'cashier'
+    ? allNavItems.filter(item => item.path === '/pos')
+    : allNavItems;
 
   return (
     <div className="app-container" style={{ display: 'flex', height: '100vh', backgroundColor: '#f8fafc', flexDirection: 'row' }}>
