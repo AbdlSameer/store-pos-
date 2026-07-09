@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { createBillSchema, scanSchema } from '@toystore/shared';
 import * as posService from './pos.service';
 import { successResponse, buildPaginatedResponse } from '../../utils/pagination';
-import { logAuditAction } from '../../utils/auditLogger';
 
 export async function scanQr(req: Request, res: Response, next: NextFunction) {
   try {
@@ -18,7 +17,6 @@ export async function createBill(req: Request, res: Response, next: NextFunction
   try {
     const data = createBillSchema.parse(req.body);
     const bill = await posService.createBill(data, req.user!.userId);
-    await logAuditAction(req.user!.userId, 'CREATE_BILL', 'Bill', bill.id, { totalAmount: bill.totalAmount, itemsCount: data.items.length });
     res.status(201).json(successResponse(bill, 'Bill created successfully'));
   } catch (err) {
     next(err);

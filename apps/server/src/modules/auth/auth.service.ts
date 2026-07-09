@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
-import QRCode from 'qrcode';
 import { prisma } from '../../config/database';
 import { redis } from '../../config/redis';
 import { env } from '../../config/env';
@@ -9,7 +8,7 @@ import { AppError } from '../../middleware/errorHandler';
 
 const REFRESH_TOKEN_PREFIX = 'refresh:';
 
-export async function loginService(email: string, password: string) {
+export async function loginService(email: string, password: string, otp?: string) {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user || !user.isActive) {
@@ -21,11 +20,23 @@ export async function loginService(email: string, password: string) {
     throw new AppError('Invalid credentials', 401);
   }
 
-  if ((user.role === 'admin' || user.role === 'super_admin') && user.twoFactorEnabled) {
-    return {
-      requires2FA: true,
-      userId: user.id,
-    };
+  // Owner / super_admin accounts require 2FA once enabled.
+  if (user.twoFactorEnabled) {
+    if (!otp) {
+      // Signal to the client that a second step is needed - do NOT
+      // issue tokens yet.
+      return { requiresTwoFactor: true } as const;
+    }
+    const validOtp =
+      !!user.twoFactorSecret &&
+      speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token: otp,
+      });
+    if (!validOtp) {
+      throw new AppError('Invalid 2FA code', 401);
+    }
   }
 
   // Update last login
@@ -149,81 +160,58 @@ export async function changePasswordService(
   await redis.del(`${REFRESH_TOKEN_PREFIX}${userId}`);
 }
 
-export async function setup2FAService(userId: string) {
+// ─── 2FA (TOTP) ─────────────────────────────────────────────────
+
+/**
+ * Step 1 of enabling 2FA: generate a secret + otpauth URL for the
+ * user to scan into an authenticator app (Google Authenticator,
+ * Authy, 1Password, etc). Not yet persisted as "enabled" until the
+ * user confirms with a valid code via confirmTwoFactorService.
+ */
+export async function generateTwoFactorSetupService(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError('User not found', 404);
 
-  const secret = speakeasy.generateSecret({
-    name: `ToyStore (${user.email})`,
+  const secretInfo = speakeasy.generateSecret({ name: 'Toy Store POS (' + user.email + ')' });
+  const secret = secretInfo.base32;
+  const otpauthUrl = secretInfo.otpauth_url || '';
+
+  // Stash the pending secret; not enabled until confirmed.
+  await prisma.user.update({
+    where: { id: userId },
+    data: { twoFactorSecret: secret, twoFactorEnabled: false },
   });
+
+  return { secret, otpauthUrl };
+}
+
+/** Step 2: user submits a code from their app to confirm setup. */
+export async function confirmTwoFactorService(userId: string, otp: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.twoFactorSecret) {
+    throw new AppError('2FA setup not started', 400);
+  }
+
+  const valid = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: otp,
+  });
+  if (!valid) throw new AppError('Invalid 2FA code', 401);
 
   await prisma.user.update({
     where: { id: userId },
-    data: { twoFactorSecret: secret.base32 },
+    data: { twoFactorEnabled: true },
   });
 
-  const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url || '');
-
-  return {
-    secret: secret.base32,
-    qrCodeUrl,
-  };
+  return { enabled: true };
 }
 
-export async function verify2FAService(userId: string, token: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError('User not found', 404);
-  if (!user.twoFactorSecret) throw new AppError('2FA not set up', 400);
-
-  const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
-    encoding: 'base32',
-    token,
-  });
-
-  if (!verified) throw new AppError('Invalid 2FA token', 401);
-
-  if (!user.twoFactorEnabled) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { twoFactorEnabled: true },
-    });
-  }
-
-  // Update last login
+/** Disable 2FA - requires the current password, checked by the controller/route. */
+export async function disableTwoFactorService(userId: string) {
   await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLogin: new Date() },
+    where: { id: userId },
+    data: { twoFactorEnabled: false, twoFactorSecret: null },
   });
-
-  const accessToken = jwt.sign(
-    { userId: user.id, role: user.role },
-    env.JWT_ACCESS_SECRET,
-    { expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId: user.id, role: user.role },
-    env.JWT_REFRESH_SECRET,
-    { expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
-  );
-
-  const hashedRefresh = await bcrypt.hash(refreshToken, 8);
-  await redis.set(
-    `${REFRESH_TOKEN_PREFIX}${user.id}`,
-    hashedRefresh,
-    'EX',
-    7 * 24 * 60 * 60
-  );
-
-  return {
-    accessToken,
-    refreshToken,
-    user: {
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-    },
-  };
+  return { enabled: false };
 }

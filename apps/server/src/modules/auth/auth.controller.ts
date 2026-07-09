@@ -1,15 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
-import { loginSchema, changePasswordSchema } from '@toystore/shared';
+import { loginSchema, changePasswordSchema, verifyTwoFactorSchema } from '@toystore/shared';
 import * as authService from './auth.service';
 import { successResponse } from '../../utils/pagination';
+import { recordAuditLog } from '../audit/audit.service';
 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password } = loginSchema.parse(req.body);
-    const result = await authService.loginService(email, password);
+    const { email, password, otp } = loginSchema.parse(req.body);
+    const result = await authService.loginService(email, password, otp);
 
-    if ('requires2FA' in result && result.requires2FA) {
-      res.json(successResponse({ requires2FA: true, userId: result.userId }, '2FA required'));
+    // Password was correct but a 2FA code is still required.
+    if ('requiresTwoFactor' in result) {
+      res.json(successResponse({ requiresTwoFactor: true }, 'Enter your 2FA code'));
       return;
     }
 
@@ -21,11 +23,30 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    void recordAuditLog({
+      userId: result.user.id,
+      userEmail: result.user.email,
+      userRole: result.user.role,
+      action: 'LOGIN_SUCCESS',
+      method: 'POST',
+      path: '/auth/login',
+      statusCode: 200,
+      ipAddress: req.ip,
+    });
+
     res.json(successResponse(
       { accessToken: result.accessToken, user: result.user },
       'Login successful'
     ));
   } catch (err) {
+    void recordAuditLog({
+      userEmail: req.body?.email ?? null,
+      action: 'LOGIN_FAILED',
+      method: 'POST',
+      path: '/auth/login',
+      statusCode: 401,
+      ipAddress: req.ip,
+    });
     next(err);
   }
 }
@@ -84,38 +105,47 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function setup2FA(req: Request, res: Response, next: NextFunction) {
+export async function setupTwoFactor(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await authService.setup2FAService(req.user!.userId);
-    res.json(successResponse(result, '2FA setup initiated'));
+    const result = await authService.generateTwoFactorSetupService(req.user!.userId);
+    res.json(successResponse(result, 'Scan this QR code with your authenticator app'));
   } catch (err) {
     next(err);
   }
 }
 
-export async function verify2FA(req: Request, res: Response, next: NextFunction) {
+export async function confirmTwoFactor(req: Request, res: Response, next: NextFunction) {
   try {
-    const { userId, token } = req.body;
-    // If not authenticated, require userId in body (during login). If authenticated (setup), use req.user.
-    const targetUserId = req.user?.userId || userId;
-    if (!targetUserId) {
-      res.status(400).json({ success: false, message: 'User ID is required' });
-      return;
-    }
-
-    const result = await authService.verify2FAService(targetUserId, token);
-
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    const { otp } = verifyTwoFactorSchema.parse(req.body);
+    const result = await authService.confirmTwoFactorService(req.user!.userId, otp);
+    void recordAuditLog({
+      userId: req.user!.userId,
+      userRole: req.user!.role,
+      action: '2FA_ENABLED',
+      method: 'POST',
+      path: '/auth/2fa/confirm',
+      statusCode: 200,
+      ipAddress: req.ip,
     });
+    res.json(successResponse(result, '2FA enabled'));
+  } catch (err) {
+    next(err);
+  }
+}
 
-    res.json(successResponse(
-      { accessToken: result.accessToken, user: result.user },
-      '2FA verified successfully'
-    ));
+export async function disableTwoFactor(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await authService.disableTwoFactorService(req.user!.userId);
+    void recordAuditLog({
+      userId: req.user!.userId,
+      userRole: req.user!.role,
+      action: '2FA_DISABLED',
+      method: 'POST',
+      path: '/auth/2fa/disable',
+      statusCode: 200,
+      ipAddress: req.ip,
+    });
+    res.json(successResponse(result, '2FA disabled'));
   } catch (err) {
     next(err);
   }

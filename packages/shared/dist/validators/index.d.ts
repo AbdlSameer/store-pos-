@@ -2,12 +2,22 @@ import { z } from 'zod';
 export declare const loginSchema: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;
+    otp: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     email: string;
     password: string;
+    otp?: string | undefined;
 }, {
     email: string;
     password: string;
+    otp?: string | undefined;
+}>;
+export declare const verifyTwoFactorSchema: z.ZodObject<{
+    otp: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    otp: string;
+}, {
+    otp: string;
 }>;
 export declare const changePasswordSchema: z.ZodObject<{
     oldPassword: z.ZodString;

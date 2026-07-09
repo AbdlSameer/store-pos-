@@ -1,11 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scanSchema = exports.createBillSchema = exports.stockAdjustmentSchema = exports.updateProductSchema = exports.createProductSchema = exports.createCategorySchema = exports.changePasswordSchema = exports.loginSchema = void 0;
+exports.scanSchema = exports.createBillSchema = exports.stockAdjustmentSchema = exports.updateProductSchema = exports.createProductSchema = exports.createCategorySchema = exports.changePasswordSchema = exports.verifyTwoFactorSchema = exports.loginSchema = void 0;
 const zod_1 = require("zod");
 // ─── Auth ─────────────────────────────────────────────────────
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email address'),
     password: zod_1.z.string().min(6, 'Password must be at least 6 characters'),
+    otp: zod_1.z.string().length(6).optional(),
+});
+exports.verifyTwoFactorSchema = zod_1.z.object({
+    otp: zod_1.z.string().length(6, 'Enter the 6-digit code'),
 });
 exports.changePasswordSchema = zod_1.z.object({
     oldPassword: zod_1.z.string().min(6),
