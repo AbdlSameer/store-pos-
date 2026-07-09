@@ -19,7 +19,8 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
+const allowedOrigins = env.CLIENT_URL.split(',').map(url => url.trim());
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(apiLimiter);
