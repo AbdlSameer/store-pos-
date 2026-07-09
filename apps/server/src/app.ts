@@ -36,6 +36,34 @@ app.use('/api/analytics', analyticsRouter);
 // Error Handling
 app.use(errorHandler);
 
+// ── TEMPORARY SEED ENDPOINT (remove after first use) ────────────
+// POST https://store-pos.onrender.com/api/seed-prod?secret=SAMEER_SEED_2024
+import bcryptjs from 'bcryptjs';
+app.post('/api/seed-prod', async (req: express.Request, res: express.Response) => {
+  const { prisma: db } = await import('./config/database');
+  if (req.query.secret !== 'SAMEER_SEED_2024') {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  try {
+    const hash = await bcryptjs.hash('123123', 10);
+    await db.user.upsert({
+      where: { email: 'sameer@gmail.com' },
+      update: { passwordHash: hash, role: 'super_admin', isActive: true },
+      create: { email: 'sameer@gmail.com', passwordHash: hash, fullName: 'Super Admin', role: 'super_admin' },
+    });
+    await db.user.upsert({
+      where: { email: 'cashier@toystore.com' },
+      update: { passwordHash: hash, role: 'cashier', isActive: true },
+      create: { email: 'cashier@toystore.com', passwordHash: hash, fullName: 'Store Cashier', role: 'cashier' },
+    });
+    res.json({ success: true, message: 'Users created: sameer@gmail.com and cashier@toystore.com (password: 123123)' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ── END TEMPORARY SEED ENDPOINT ─────────────────────────────────
+
 import { prisma } from './config/database';
 import { redis } from './config/redis';
 
