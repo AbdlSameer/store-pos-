@@ -16,7 +16,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email: 'admin@toystore.com', password });
+      const res = await api.post('/auth/login', { email: 'sameer@gmail.com', password });
       if (res.data.success) {
         setAuth(res.data.data.user, res.data.data.accessToken);
         navigate('/dashboard');
