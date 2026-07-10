@@ -15,6 +15,7 @@ router.post('/scan', scanLimiter, authorize(['super_admin', 'admin', 'cashier'])
 router.post('/bills', authorize(['super_admin', 'admin', 'cashier']), audit('BILL_CREATE', 'Bill'), posController.createBill);
 router.get('/bills', authorize(['super_admin', 'admin', 'cashier']), posController.getBills);
 router.get('/bills/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
+router.delete('/bills/:id', authorize(['super_admin', 'admin']), audit('BILL_DELETE', 'Bill'), posController.deleteBill);
 router.get('/history', authorize(['super_admin', 'admin', 'cashier']), posController.getHistory);
 router.get('/history/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
 

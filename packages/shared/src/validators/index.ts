@@ -24,7 +24,7 @@ export const createCategorySchema = z.object({
 
 // ─── Product ──────────────────────────────────────────────────
 export const createProductSchema = z.object({
-  sku: z.string().min(1).max(50),
+  sku: z.string().min(4, 'SKU must be at least 4 characters').max(50),
   name: z.string().min(1).max(255),
   description: z.string().optional(),
   categoryId: z.string().uuid(),

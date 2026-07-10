@@ -54,3 +54,31 @@ export async function getTopProducts() {
     product: productMap.get(s.productId)
   }));
 }
+
+export async function getDeadStock() {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // Find products that have a high stock quantity but 0 sales in the last 30 days
+  // First get all sales in last 30 days
+  const recentSales = await prisma.salesAnalytics.groupBy({
+    by: ['productId'],
+    where: { date: { gte: thirtyDaysAgo } }
+  });
+  
+  const soldProductIds = recentSales.map(s => s.productId);
+
+  // Then find active products not in that list, ordered by quantity descending
+  const deadStock = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      id: { notIn: soldProductIds },
+      quantity: { gt: 0 }
+    },
+    orderBy: { quantity: 'desc' },
+    take: 10,
+    select: { id: true, name: true, sku: true, quantity: true, price: true }
+  });
+
+  return deadStock;
+}

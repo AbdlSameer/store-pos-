@@ -41,6 +41,15 @@ export async function getBill(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export async function deleteBill(req: Request, res: Response, next: NextFunction) {
+  try {
+    await posService.deleteBill(req.params.id);
+    res.json(successResponse(null, 'Bill deleted successfully'));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getHistory(req: Request, res: Response, next: NextFunction) {
   try {
     const { bills, total, page, limit } = await posService.getHistory(req.query as Record<string, unknown>);

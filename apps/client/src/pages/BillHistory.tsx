@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import PrintBillModal from '../components/PrintBillModal';
+import { Trash2 } from 'lucide-react';
 
 export default function BillHistory() {
   const [bills, setBills] = useState<any[]>([]);
@@ -12,6 +14,7 @@ export default function BillHistory() {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const user = useAuthStore(s => s.user);
 
   const fetchHistory = async () => {
     try {
@@ -44,6 +47,16 @@ export default function BillHistory() {
       setSelectedBill(res.data.data);
     } catch (error) {
       console.error('Failed to fetch bill details for printing:', error);
+    }
+  };
+
+  const handleDelete = async (billId: string) => {
+    if (!window.confirm('Are you sure you want to delete this bill? This action cannot be undone and will restore the inventory.')) return;
+    try {
+      await api.delete(`/pos/bills/${billId}`);
+      fetchHistory();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to delete bill');
     }
   };
 
@@ -115,9 +128,21 @@ export default function BillHistory() {
                     <td><span style={{ textTransform: 'capitalize' }}>{bill.paymentMethod}</span></td>
                     <td><strong>₹{Number(bill.totalAmount).toFixed(2)}</strong></td>
                     <td>
-                      <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handlePrint(bill.id)}>
-                        Print Bill
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }} onClick={() => handlePrint(bill.id)}>
+                          Print Bill
+                        </button>
+                        {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                          <button 
+                            className="btn" 
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none' }} 
+                            onClick={() => handleDelete(bill.id)}
+                            title="Delete Bill"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -15,3 +15,10 @@ export async function getTopProducts(req: Request, res: Response, next: NextFunc
     res.json(successResponse(products));
   } catch (err) { next(err); }
 }
+
+export async function getDeadStock(req: Request, res: Response, next: NextFunction) {
+  try {
+    const products = await analyticsService.getDeadStock();
+    res.json(successResponse(products));
+  } catch (err) { next(err); }
+}

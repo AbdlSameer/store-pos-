@@ -6,14 +6,27 @@ import PrintLabelModal from '../components/PrintLabelModal';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [labelProduct, setLabelProduct] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/categories');
+      setCategories(res.data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
-      const res = await api.get(`/products?search=${search}`);
+      const res = await api.get('/products', {
+        params: { search, categoryId }
+      });
       setProducts(res.data.data);
     } catch (err) {
       console.error(err);
@@ -21,8 +34,12 @@ export default function Products() {
   };
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     fetchProducts();
-  }, [search]);
+  }, [search, categoryId]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
@@ -59,6 +76,17 @@ export default function Products() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+          <select
+            className="input-field"
+            style={{ width: '200px' }}
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat: any) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

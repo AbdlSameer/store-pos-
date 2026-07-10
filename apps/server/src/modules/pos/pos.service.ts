@@ -222,6 +222,57 @@ export async function getBillById(id: string) {
   return bill;
 }
 
+export async function deleteBill(id: string) {
+  const bill = await prisma.bill.findUnique({
+    where: { id },
+    include: { items: true }
+  });
+  
+  if (!bill) throw new AppError('Bill not found', 404);
+
+  // Restore stock in a transaction, then delete the bill
+  await prisma.$transaction(async (tx) => {
+    // 1. Restore stock
+    for (const item of bill.items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { quantity: { increment: item.quantity } }
+      });
+    }
+
+    // 2. Remove sales analytics for this bill (simplified: we just decrement unitsSold and revenue)
+    // Note: To be perfectly accurate, we'd find the exact date the bill was made.
+    const billDate = new Date(bill.createdAt);
+    billDate.setHours(0, 0, 0, 0);
+
+    for (const item of bill.items) {
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+      
+      const profit = Number(item.lineTotal) - (Number(product.costPrice || 0) * item.quantity);
+      
+      const existingAnalytic = await tx.salesAnalytics.findUnique({
+        where: { date_productId: { date: billDate, productId: item.productId } }
+      });
+
+      if (existingAnalytic) {
+        await tx.salesAnalytics.update({
+          where: { id: existingAnalytic.id },
+          data: {
+            unitsSold: { decrement: item.quantity },
+            revenue: { decrement: item.lineTotal },
+            profit: { decrement: profit },
+            billCount: { decrement: 1 }
+          }
+        });
+      }
+    }
+
+    // 3. Delete bill (cascade deletes items)
+    await tx.bill.delete({ where: { id } });
+  });
+}
+
 export async function getHistory(query: Record<string, unknown>) {
   const { skip, take, page, limit } = parsePagination(query);
   const search = query.search as string | undefined;
