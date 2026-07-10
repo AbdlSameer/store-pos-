@@ -2,7 +2,78 @@ import { QRCodeSVG } from 'qrcode.react';
 
 export default function PrintLabelModal({ product, onClose }: { product: any, onClose: () => void }) {
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    // Build label HTML for every label in bulk
+    const labelHTML = pages.map(pageLabels => `
+      <div class="label-page">
+        <div class="label-grid">
+          ${pageLabels.map(() => `
+            <div class="label-cell">
+              <div class="label-shop-name">A. M. Mangilal Toy World</div>
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(product.qrCode?.qrPayload || product.sku)}"
+                width="130" height="130"
+              />
+              <div class="label-product-name">${product.name}</div>
+              <div class="label-sku">SKU: ${product.sku}</div>
+              ${product.mrp ? `<div class="label-mrp">MRP: \u20B9${product.mrp}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Labels - ${product.name}</title>
+        <style>
+          @page { size: A4 portrait; margin: 10mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+          body { background: white; }
+          .label-page {
+            width: 190mm;
+            height: 277mm;
+            page-break-after: always;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 0;
+          }
+          .label-page:last-child { page-break-after: avoid; }
+          .label-grid { display: contents; }
+          .label-cell {
+            border: 0.5pt solid #999;
+            width: 95mm;
+            height: 69.25mm;
+            padding: 3mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5mm;
+            overflow: hidden;
+          }
+          .label-shop-name { font-size: 9pt; font-weight: 700; text-align: center; }
+          .label-product-name { font-size: 8pt; font-weight: 600; text-align: center; }
+          .label-sku { font-size: 7pt; color: #333; }
+          .label-mrp { font-size: 10pt; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        ${labelHTML}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    // Wait for QR images to load then print
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   };
 
   const totalLabels = product.quantity || 1;
