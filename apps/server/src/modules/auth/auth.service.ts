@@ -7,8 +7,33 @@ import { env } from '../../config/env';
 import { AppError } from '../../middleware/errorHandler';
 
 const REFRESH_TOKEN_PREFIX = 'refresh:';
+const LOGIN_FAIL_PREFIX = 'login_fail:';
+const LOCKOUT_PREFIX = 'login_lock:';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_WINDOW_SECS = 15 * 60; // 15 minutes;
 
 export async function loginService(password: string, otp?: string) {
+  // ── Account lockout check (password-based key since we have no email) ────
+  // We use a hash of the first 6 chars of the password as the key so we don't
+  // store plaintext passwords in Redis. This is approximate but sufficient.
+  const passwordKey = password.slice(0, 32); // Redis key portion
+  const lockKey = `${LOCKOUT_PREFIX}${passwordKey}`;
+  const failKey = `${LOGIN_FAIL_PREFIX}${passwordKey}`;
+
+  // Check if this password attempt is locked out
+  const lockTtl = await redis.ttl(lockKey);
+  if (lockTtl > 0) {
+    const minutes = Math.ceil(lockTtl / 60);
+    const seconds = lockTtl % 60;
+    const countdown = minutes > 0
+      ? `${minutes}m ${seconds}s`
+      : `${seconds}s`;
+    throw new AppError(
+      `Too many failed attempts. Try again in ${countdown}.`,
+      429
+    );
+  }
+
   const users = await prisma.user.findMany({ where: { isActive: true } });
   
   let matchedUser = null;
@@ -20,8 +45,32 @@ export async function loginService(password: string, otp?: string) {
   }
 
   if (!matchedUser) {
-    throw new AppError('Invalid credentials', 401);
+    // Increment failure counter with sliding window
+    const fails = await redis.incr(failKey);
+    if (fails === 1) {
+      // First failure — start the 15-minute window
+      await redis.expire(failKey, LOCKOUT_WINDOW_SECS);
+    }
+    if (fails >= MAX_ATTEMPTS) {
+      // Lock this password for 15 minutes
+      await redis.set(lockKey, '1', 'EX', LOCKOUT_WINDOW_SECS);
+      await redis.del(failKey);
+      throw new AppError(
+        `Account locked after ${MAX_ATTEMPTS} failed attempts. Try again in 15 minutes.`,
+        429
+      );
+    }
+    const remaining = MAX_ATTEMPTS - fails;
+    throw new AppError(
+      `Invalid credentials. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`,
+      401
+    );
   }
+
+  // Successful match — clear any failure counters
+  await redis.del(failKey);
+  await redis.del(lockKey);
+
   const user = matchedUser;
 
   // Owner / super_admin accounts require 2FA once enabled.

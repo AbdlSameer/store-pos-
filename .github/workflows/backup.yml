@@ -1,0 +1,45 @@
+name: Nightly Database Backup
+
+on:
+  schedule:
+    # Runs every night at 01:00 UTC (6:30 AM IST)
+    - cron: '0 1 * * *'
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: pg_dump → Backblaze B2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d_%H%M%S")
+          FILENAME="toystore_backup_${TIMESTAMP}.sql.gz"
+          echo "FILENAME=${FILENAME}" >> $GITHUB_ENV
+          pg_dump "$DATABASE_URL" | gzip > "/tmp/${FILENAME}"
+          echo "✅ Dump created: ${FILENAME} ($(du -sh /tmp/${FILENAME} | cut -f1))"
+
+      - name: Upload to Backblaze B2
+        env:
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_BUCKET_NAME: ${{ secrets.B2_BUCKET_NAME }}
+        run: |
+          pip install --quiet b2
+          b2 authorize-account "$B2_APPLICATION_KEY_ID" "$B2_APPLICATION_KEY"
+          b2 upload-file "$B2_BUCKET_NAME" "/tmp/${{ env.FILENAME }}" "backups/${{ env.FILENAME }}"
+          echo "✅ Uploaded to B2: ${{ env.FILENAME }}"
+
+      - name: Cleanup local dump
+        if: always()
+        run: rm -f "/tmp/${{ env.FILENAME }}"

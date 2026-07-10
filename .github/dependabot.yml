@@ -1,0 +1,47 @@
+version: 2
+updates:
+  # npm packages in the monorepo root
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+    open-pull-requests-limit: 10
+
+  # npm packages in the server app
+  - package-ecosystem: "npm"
+    directory: "/apps/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "server"
+    open-pull-requests-limit: 10
+
+  # npm packages in the client app
+  - package-ecosystem: "npm"
+    directory: "/apps/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "client"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "github-actions"

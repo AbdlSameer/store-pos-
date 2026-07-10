@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, ShieldCheck, Clock } from 'lucide-react';
+
+// Parse "Try again in Xm Ys." from server error messages into seconds
+function parseLockoutSeconds(msg: string): number {
+  const m = msg.match(/(\d+)m\s+(\d+)s/);
+  if (m) return parseInt(m[1]) * 60 + parseInt(m[2]);
+  const s = msg.match(/(\d+)s\./);
+  if (s) return parseInt(s[1]);
+  // Fallback — 15 minutes if pattern matches generic lockout
+  if (msg.toLowerCase().includes('locked') || msg.toLowerCase().includes('15 minutes')) return 15 * 60;
+  return 0;
+}
+
+function formatCountdown(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `0:${String(s).padStart(2, '0')}`;
+}
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -10,11 +27,31 @@ export default function Login() {
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lockoutSecs, setLockoutSecs] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
 
+  // Live countdown ticker
+  useEffect(() => {
+    if (lockoutSecs > 0) {
+      countdownRef.current = setInterval(() => {
+        setLockoutSecs(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!);
+            setError('');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [lockoutSecs]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutSecs > 0) return;
     setError('');
     setLoading(true);
     try {
@@ -24,8 +61,6 @@ export default function Login() {
       });
 
       if (res.data.data?.requiresTwoFactor) {
-        // Correct email/password, but this account (e.g. the owner)
-        // has 2FA enabled - ask for the authenticator code next.
         setNeedsTwoFactor(true);
         return;
       }
@@ -35,7 +70,12 @@ export default function Login() {
         navigate(res.data.data.user.role === 'cashier' ? '/pos' : '/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      const msg: string = err.response?.data?.message || 'Login failed';
+      setError(msg);
+      const secs = parseLockoutSeconds(msg);
+      if (secs > 0) {
+        setLockoutSecs(secs);
+      }
     } finally {
       setLoading(false);
     }
@@ -54,7 +94,28 @@ export default function Login() {
           </p>
         </div>
 
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
+        {/* Error / lockout banner */}
+        {error && (
+          <div style={{
+            backgroundColor: lockoutSecs > 0 ? '#fff7ed' : '#fee2e2',
+            color: lockoutSecs > 0 ? '#c2410c' : '#ef4444',
+            border: `1px solid ${lockoutSecs > 0 ? '#fed7aa' : '#fecaca'}`,
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+          }}>
+            {lockoutSecs > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <span>{error.replace(/Try again in.*/, '').trim()}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  <Clock size={14} />
+                  {formatCountdown(lockoutSecs)}
+                </span>
+              </div>
+            ) : error}
+          </div>
+        )}
 
         {!needsTwoFactor ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -66,11 +127,17 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete="current-password"
+                disabled={lockoutSecs > 0}
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-              {loading ? 'Signing in...' : 'Sign In'}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading || lockoutSecs > 0}
+              style={{ width: '100%', marginTop: '0.5rem' }}
+            >
+              {loading ? 'Signing in...' : lockoutSecs > 0 ? `Locked — ${formatCountdown(lockoutSecs)}` : 'Sign In'}
             </button>
           </form>
         ) : (
