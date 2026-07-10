@@ -22,7 +22,10 @@ exports.createCategorySchema = zod_1.z.object({
 });
 // ─── Product ──────────────────────────────────────────────────
 exports.createProductSchema = zod_1.z.object({
-    sku: zod_1.z.string().min(4, 'SKU must be at least 4 characters').max(50),
+    sku: zod_1.z.string()
+        .min(4, 'SKU must be at least 4 characters')
+        .max(20, 'SKU cannot exceed 20 characters')
+        .regex(/^[A-Za-z0-9]+$/, 'SKU must contain only letters and numbers (no spaces or symbols)'),
     name: zod_1.z.string().min(1).max(255),
     description: zod_1.z.string().optional(),
     categoryId: zod_1.z.string().uuid(),
