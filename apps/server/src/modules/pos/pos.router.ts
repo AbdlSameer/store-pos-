@@ -16,6 +16,7 @@ router.post('/bills', authorize(['super_admin', 'admin', 'cashier']), audit('BIL
 router.get('/bills', authorize(['super_admin', 'admin', 'cashier']), posController.getBills);
 router.get('/bills/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
 router.delete('/bills/:id', authorize(['super_admin', 'admin']), audit('BILL_DELETE', 'Bill'), posController.deleteBill);
+router.post('/bills/:id/void', authorize(['super_admin', 'admin', 'cashier']), audit('BILL_VOID', 'Bill'), posController.voidBillController);
 router.get('/history', authorize(['super_admin', 'admin', 'cashier']), posController.getHistory);
 router.get('/history/:id', authorize(['super_admin', 'admin', 'cashier']), posController.getBill);
 

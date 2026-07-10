@@ -1,10 +1,12 @@
 import { Prisma } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import speakeasy from 'speakeasy';
 import { prisma } from '../../config/database';
 import { AppError } from '../../middleware/errorHandler';
 import { verifyHmac, decodeQrPayload } from '../../utils/hmac';
 import { generateBillNumber, parsePagination } from '../../utils/pagination';
 import { cacheSet, CacheKeys, cacheGet } from '../../config/redis';
-import { QR_SCAN_CACHE_TTL } from '@toystore/shared';
+import { QR_SCAN_CACHE_TTL, VoidBillInput } from '@toystore/shared';
 // We will import Queue from bullmq when we set it up
 // import { alertQueue } from '../../jobs/queues';
 
@@ -273,6 +275,80 @@ export async function deleteBill(id: string) {
   });
 }
 
+// ─── Void Bill (Manager-Override) ─────────────────────────────
+export async function voidBill(
+  billId: string,
+  requester: { userId: string; role: string },
+  input: VoidBillInput
+) {
+  // 1. Load bill with items
+  const bill = await prisma.bill.findUnique({
+    where: { id: billId },
+    include: { items: true }
+  });
+  if (!bill) throw new AppError('Bill not found', 404);
+  if (bill.paymentStatus === 'voided') throw new AppError('This bill has already been voided', 409);
+
+  // 2. Find and validate the approver
+  const approver = await prisma.user.findUnique({ where: { email: input.approverEmail } });
+  if (!approver || !approver.isActive) throw new AppError('Invalid approver credentials', 401);
+  if (approver.role === 'cashier') throw new AppError('Approver must be an admin or super_admin', 403);
+
+  // 3. A cashier cannot approve their own void request
+  if (requester.role === 'cashier' && approver.id === requester.userId) {
+    throw new AppError('You cannot approve your own void — a manager must enter their credentials', 403);
+  }
+
+  // 4. Verify approver password
+  const passwordValid = await bcrypt.compare(input.approverPassword, approver.passwordHash);
+  if (!passwordValid) throw new AppError('Invalid approver credentials', 401);
+
+  // 5. If approver has 2FA, verify OTP
+  if (approver.twoFactorEnabled) {
+    if (!input.approverOtp) {
+      // Signal to controller that a second step is needed
+      return { requiresTwoFactor: true } as const;
+    }
+    const otpValid = !!approver.twoFactorSecret && speakeasy.totp.verify({
+      secret: approver.twoFactorSecret,
+      encoding: 'base32',
+      token: input.approverOtp,
+      window: 1,
+    });
+    if (!otpValid) throw new AppError('Invalid 2FA code', 401);
+  }
+
+  // 6. Execute void in a transaction: restore stock + mark bill voided
+  const voidedBill = await prisma.$transaction(async (tx) => {
+    // Restore stock for each item
+    for (const item of bill.items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { quantity: { increment: item.quantity } }
+      });
+    }
+
+    // Mark bill as voided
+    return tx.bill.update({
+      where: { id: billId },
+      data: {
+        paymentStatus: 'voided',
+        voidedAt: new Date(),
+        voidedById: requester.userId,
+        approvedById: approver.id,
+        voidReason: input.reason,
+      },
+      include: {
+        items: true,
+        cashier: { select: { fullName: true } },
+        approvedBy: { select: { fullName: true, email: true } },
+      }
+    });
+  });
+
+  return voidedBill;
+}
+
 export async function getHistory(query: Record<string, unknown>) {
   const { skip, take, page, limit } = parsePagination(query);
   const search = query.search as string | undefined;
@@ -299,7 +375,11 @@ export async function getHistory(query: Record<string, unknown>) {
       where,
       skip,
       take,
-      include: { items: true, cashier: { select: { fullName: true } } },
+      include: {
+        items: true,
+        cashier: { select: { fullName: true } },
+        approvedBy: { select: { fullName: true, email: true } },
+      },
       orderBy: { createdAt: 'desc' }
     }),
     prisma.bill.count({ where })

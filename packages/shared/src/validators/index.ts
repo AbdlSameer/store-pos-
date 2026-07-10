@@ -46,6 +46,13 @@ export const stockAdjustmentSchema = z.object({
   reason: z.string().min(1).max(255),
 });
 
+export const voidBillSchema = z.object({
+  reason: z.string().min(3, 'Void reason must be at least 3 characters'),
+  approverEmail: z.string().email('Approver email is required'),
+  approverPassword: z.string().min(6, 'Approver password required'),
+  approverOtp: z.string().length(6).optional(),
+});
+
 // ─── Bill ─────────────────────────────────────────────────────
 export const createBillSchema = z.object({
   customerName: z.string().max(100).optional(),
@@ -73,3 +80,4 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type CreateBillInput = z.infer<typeof createBillSchema>;
 export type ScanInput = z.infer<typeof scanSchema>;
+export type VoidBillInput = z.infer<typeof voidBillSchema>;

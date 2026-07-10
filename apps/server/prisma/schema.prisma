@@ -34,6 +34,7 @@ enum PaymentStatus {
   paid
   pending
   refunded
+  voided
 }
 
 enum AlertType {
@@ -60,7 +61,9 @@ model User {
   twoFactorSecret  String?   @map("two_factor_secret") @db.VarChar(100)
   twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
 
-  bills              Bill[]
+  bills              Bill[]      @relation("CashierBills")
+  billsVoided        Bill[]      @relation("VoidedBy")
+  billsApproved      Bill[]      @relation("ApprovedBy")
   productsCreated    Product[]   @relation("CreatedBy")
   alertsAcknowledged StockAlert[] @relation("AcknowledgedBy")
   auditLogs          AuditLog[]
@@ -154,9 +157,16 @@ model Bill {
   saleMode      SaleMode      @default(retail) @map("sale_mode")
   notes         String?       @db.Text
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  // ── Void fields ────────────────────────────────────────────
+  voidedAt      DateTime?     @map("voided_at") @db.Timestamptz
+  voidedById    String?       @map("voided_by_id") @db.Uuid
+  voidReason    String?       @map("void_reason") @db.Text
+  approvedById  String?       @map("approved_by_id") @db.Uuid
 
-  cashier User       @relation(fields: [cashierId], references: [id])
-  items   BillItem[]
+  cashier    User       @relation("CashierBills", fields: [cashierId], references: [id])
+  voidedBy   User?      @relation("VoidedBy",   fields: [voidedById],  references: [id])
+  approvedBy User?      @relation("ApprovedBy", fields: [approvedById], references: [id])
+  items      BillItem[]
 
   @@index([billNumber])
   @@index([cashierId])

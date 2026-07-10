@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createBillSchema, scanSchema } from '@toystore/shared';
+import { createBillSchema, scanSchema, voidBillSchema } from '@toystore/shared';
 import * as posService from './pos.service';
 import { successResponse, buildPaginatedResponse } from '../../utils/pagination';
 
@@ -54,6 +54,23 @@ export async function getHistory(req: Request, res: Response, next: NextFunction
   try {
     const { bills, total, page, limit } = await posService.getHistory(req.query as Record<string, unknown>);
     res.json(buildPaginatedResponse(bills, total, page, limit));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function voidBillController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = voidBillSchema.parse(req.body);
+    const result = await posService.voidBill(req.params.id, req.user!, input);
+
+    // If the approver has 2FA enabled, signal the client to collect the OTP
+    if ('requiresTwoFactor' in result) {
+      res.json({ success: true, data: { requiresTwoFactor: true }, message: 'Enter approver 2FA code' });
+      return;
+    }
+
+    res.json({ success: true, data: result, message: 'Bill voided successfully' });
   } catch (err) {
     next(err);
   }

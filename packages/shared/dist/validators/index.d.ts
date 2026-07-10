@@ -117,6 +117,22 @@ export declare const stockAdjustmentSchema: z.ZodObject<{
     adjustment: number;
     reason: string;
 }>;
+export declare const voidBillSchema: z.ZodObject<{
+    reason: z.ZodString;
+    approverEmail: z.ZodString;
+    approverPassword: z.ZodString;
+    approverOtp: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    reason: string;
+    approverEmail: string;
+    approverPassword: string;
+    approverOtp?: string | undefined;
+}, {
+    reason: string;
+    approverEmail: string;
+    approverPassword: string;
+    approverOtp?: string | undefined;
+}>;
 export declare const createBillSchema: z.ZodObject<{
     customerName: z.ZodOptional<z.ZodString>;
     customerPhone: z.ZodOptional<z.ZodString>;
@@ -178,3 +194,4 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type CreateBillInput = z.infer<typeof createBillSchema>;
 export type ScanInput = z.infer<typeof scanSchema>;
+export type VoidBillInput = z.infer<typeof voidBillSchema>;

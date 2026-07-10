@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scanSchema = exports.createBillSchema = exports.stockAdjustmentSchema = exports.updateProductSchema = exports.createProductSchema = exports.createCategorySchema = exports.changePasswordSchema = exports.verifyTwoFactorSchema = exports.loginSchema = void 0;
+exports.scanSchema = exports.createBillSchema = exports.voidBillSchema = exports.stockAdjustmentSchema = exports.updateProductSchema = exports.createProductSchema = exports.createCategorySchema = exports.changePasswordSchema = exports.verifyTwoFactorSchema = exports.loginSchema = void 0;
 const zod_1 = require("zod");
 // ─── Auth ─────────────────────────────────────────────────────
 exports.loginSchema = zod_1.z.object({
@@ -40,6 +40,12 @@ exports.updateProductSchema = exports.createProductSchema.partial();
 exports.stockAdjustmentSchema = zod_1.z.object({
     adjustment: zod_1.z.number().int(),
     reason: zod_1.z.string().min(1).max(255),
+});
+exports.voidBillSchema = zod_1.z.object({
+    reason: zod_1.z.string().min(3, 'Void reason must be at least 3 characters'),
+    approverEmail: zod_1.z.string().email('Approver email is required'),
+    approverPassword: zod_1.z.string().min(6, 'Approver password required'),
+    approverOtp: zod_1.z.string().length(6).optional(),
 });
 // ─── Bill ─────────────────────────────────────────────────────
 exports.createBillSchema = zod_1.z.object({
