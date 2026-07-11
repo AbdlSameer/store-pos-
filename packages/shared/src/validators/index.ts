@@ -27,7 +27,7 @@ export const createProductSchema = z.object({
   sku: z.string()
     .min(4, 'SKU must be at least 4 characters')
     .max(20, 'SKU cannot exceed 20 characters')
-    .regex(/^[A-Za-z0-9]+$/, 'SKU must contain only letters and numbers (no spaces or symbols)'),
+    .regex(/^[A-Za-z0-9-]+$/, 'SKU must contain only letters, numbers, and hyphens'),
   name: z.string().min(1).max(255),
   description: z.string().optional(),
   categoryId: z.string().uuid(),
