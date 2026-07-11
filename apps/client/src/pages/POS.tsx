@@ -47,7 +47,7 @@ export default function POS() {
     setShowCamera(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { facingMode: { ideal: 'environment' } }
       });
       streamRef.current = stream;
       if (videoRef.current) {
