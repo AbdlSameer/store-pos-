@@ -23,7 +23,7 @@ export default function POS() {
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scanPayload) return;
-    await searchAndAdd(scanPayload);
+    await searchAndAdd(scanPayload.trim());
   };
 
   const searchAndAdd = async (query: string) => {
@@ -69,7 +69,7 @@ export default function POS() {
                 stopCamera();
                 // If scanned value looks like a SKU (starts with TS-), search directly
                 const searchTerm = value.startsWith('TS-') ? value : value;
-                await searchAndAdd(searchTerm);
+                await searchAndAdd(searchTerm.trim());
               }
             } catch { /* ignore detection errors */ }
           }

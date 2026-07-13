@@ -26,6 +26,8 @@ export async function listProducts(query: Record<string, unknown>) {
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
+        { qrCode: { barcodePayload: { equals: search } } },
+        { qrCode: { qrPayload: { equals: search } } },
       ],
     }),
   };
