@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { Plus, Search, Edit, Trash2, Printer } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Printer, RefreshCw } from 'lucide-react';
 import AddProductModal from '../components/AddProductModal';
 import PrintLabelModal from '../components/PrintLabelModal';
 
@@ -56,7 +56,10 @@ export default function Products() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Products Inventory</h1>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}><Plus size={18}/> Add Product</button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn" style={{ backgroundColor: 'white', border: '1px solid var(--border)' }} onClick={fetchProducts}><RefreshCw size={18}/> Refresh</button>
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}><Plus size={18}/> Add Product</button>
+        </div>
       </div>
 
       {isModalOpen && <AddProductModal onClose={() => setIsModalOpen(false)} onProductAdded={fetchProducts} />}
