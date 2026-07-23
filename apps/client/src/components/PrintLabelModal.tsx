@@ -10,7 +10,7 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
 
     const cols = format === '2x4' ? 2 : 3;
     const rows = format === '2x4' ? 4 : 6;
-    const qrSize = format === '2x4' ? 130 : 60;
+    const qrSize = format === '2x4' ? 130 : 90;
     const cellWidth = format === '2x4' ? '95mm' : '63.3mm';
     const cellHeight = format === '2x4' ? '69.25mm' : '46.1mm';
     const shopFontSize = format === '2x4' ? '9pt' : '7pt';
@@ -102,7 +102,7 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
 
   const previewCols = format === '2x4' ? 2 : 3;
   const previewRows = format === '2x4' ? 4 : 6;
-  const qrSize = format === '2x4' ? 130 : 60;
+  const qrSize = format === '2x4' ? 130 : 90;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
