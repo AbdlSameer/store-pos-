@@ -125,8 +125,8 @@ export default function PrintLabelModal({ product, onClose }: { product: any, on
           {pages.map((pageLabels, pageIdx) => (
             <div key={pageIdx} className="label-page" style={{ 
               display: 'grid', 
-              gridTemplateColumns: \`repeat(\${previewCols}, 1fr)\`, 
-              gridTemplateRows: \`repeat(\${previewRows}, 1fr)\`
+              gridTemplateColumns: `repeat(${previewCols}, 1fr)`, 
+              gridTemplateRows: `repeat(${previewRows}, 1fr)`
             }}>
               <div className="label-grid" style={{ display: 'contents' }}>
                 {pageLabels.map((_, i) => (
