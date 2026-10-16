@@ -17,7 +17,7 @@
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "@toystore/shared": "*",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/bwip-js": "^3.2.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
